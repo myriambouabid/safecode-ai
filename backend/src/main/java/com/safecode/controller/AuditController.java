@@ -2,6 +2,8 @@ package com.safecode.controller;
 
 import com.safecode.model.AuditRequest;
 import com.safecode.model.AuditResponse;
+import com.safecode.model.FixRequest;
+import com.safecode.model.FixResponse;
 import com.safecode.service.AuditService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +32,14 @@ public class AuditController {
     @GetMapping("/audit/{id}")
     public ResponseEntity<AuditResponse> getById(@PathVariable Long id) {
         return auditService.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/audit/{id}/fix")
+    public ResponseEntity<FixResponse> fix(@PathVariable Long id,
+                                           @RequestBody FixRequest request) {
+        return auditService.fix(id, request)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

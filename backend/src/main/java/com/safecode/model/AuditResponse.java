@@ -4,16 +4,26 @@ import java.util.List;
 
 public class AuditResponse {
 
+    private Long auditId;
     private int score;
     private int findingsCount;
     private List<Finding> findings;
 
     public AuditResponse() {}
 
-    public AuditResponse(int score, int findingsCount, List<Finding> findings) {
+    public AuditResponse(Long auditId, int score, int findingsCount, List<Finding> findings) {
+        this.auditId = auditId;
         this.score = score;
         this.findingsCount = findingsCount;
         this.findings = findings;
+    }
+
+    public Long getAuditId() {
+        return auditId;
+    }
+
+    public void setAuditId(Long auditId) {
+        this.auditId = auditId;
     }
 
     public int getScore() {
