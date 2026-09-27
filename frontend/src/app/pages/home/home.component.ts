@@ -26,7 +26,7 @@ import { FindingsListComponent } from '../../components/findings-list/findings-l
       </div>
 
       <!-- ── Hero section (vertically centered on page) ── -->
-      <div class="hero" *ngIf="!result()">
+      <div class="hero" *ngIf="!result() && !loading()">
         <div class="hero-inner">
 
           <!-- Headline -->
@@ -133,10 +133,12 @@ import { FindingsListComponent } from '../../components/findings-list/findings-l
 
       <!-- ── Results view ── -->
       <div class="results-page" *ngIf="result() && !loading()">
-        <!-- Back button + error -->
+
+        <!-- Back button -->
         <div class="results-topbar">
           <button class="btn-back" (click)="result.set(null); findings.set([]); repoUrl = ''">
-            ← New Audit
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            New Audit
           </button>
           <div class="error-banner inline" *ngIf="error()">
             <span>⚠️ {{ error() }}</span>
@@ -144,44 +146,79 @@ import { FindingsListComponent } from '../../components/findings-list/findings-l
           </div>
         </div>
 
-        <div class="results-summary">
-          <div class="score-panel">
+        <!-- ── Summary card ── -->
+        <div class="summary-card">
+          <!-- Left: arc gauge -->
+          <div class="summary-gauge">
             <app-score-gauge [score]="result()!.score" />
-            <div class="score-updated" *ngIf="scoreUpdated">
+            <div class="score-updated" *ngIf="scoreUpdated && scoreDelta !== 0">
               <span class="score-delta" [class.positive]="scoreDelta > 0">
-                {{ scoreDelta > 0 ? '+' : '' }}{{ scoreDelta }} pts after fix
+                {{ scoreDelta > 0 ? '+' : '' }}{{ scoreDelta }} pts
               </span>
             </div>
           </div>
 
-          <div class="summary-panel">
-            <h2 class="summary-title">Audit Summary</h2>
-            <p class="summary-repo">
-              <span class="summary-label">Repository</span>
-              <a [href]="auditedUrl" target="_blank" class="repo-link">{{ auditedUrl }}</a>
-            </p>
+          <!-- Centre: text info + stats grid -->
+          <div class="summary-info">
+            <div class="summary-top">
+              <h2 class="summary-title">Audit Summary</h2>
+              <div class="summary-repo-row">
+                <span class="summary-label">REPOSITORY</span>
+                <a [href]="auditedUrl" target="_blank" class="repo-link">{{ auditedUrl }}</a>
+              </div>
+            </div>
             <div class="summary-stats">
               <div class="stat-card stat-card--score">
                 <div class="stat-value">{{ result()!.score }}</div>
-                <div class="stat-label">Security Score</div>
+                <div class="stat-label">SECURITY SCORE</div>
               </div>
-              <div class="stat-card stat-card--findings">
+              <div class="stat-card">
                 <div class="stat-value">{{ result()!.findingsCount }}</div>
-                <div class="stat-label">Findings</div>
+                <div class="stat-label">FINDINGS</div>
               </div>
               <div class="stat-card stat-card--critical">
                 <div class="stat-value">{{ countBySeverity('Critical') + countBySeverity('High') }}</div>
-                <div class="stat-label">Critical / High</div>
+                <div class="stat-label">CRITICAL / HIGH</div>
               </div>
               <div class="stat-card stat-card--fixed">
                 <div class="stat-value">{{ fixedCount }}</div>
-                <div class="stat-label">Fixed</div>
+                <div class="stat-label">FIXED</div>
               </div>
             </div>
             <div class="tests-badge" *ngIf="testResult !== null">
-              <span *ngIf="testResult" class="badge-pass">■ Tests passed</span>
-              <span *ngIf="!testResult" class="badge-manual">■■ Manual review needed</span>
+              <span *ngIf="testResult" class="badge-pass">✓ Tests passed</span>
+              <span *ngIf="!testResult" class="badge-manual">⚠ Manual review needed</span>
             </div>
+          </div>
+
+          <!-- Robot mascot — flat absolute layout, faithful 2× port of source design -->
+          <div class="robot-mascot">
+            <div class="rb-feet">
+              <div class="rb-foot-left"></div>
+              <div class="rb-foot-right"></div>
+            </div>
+            <div class="rb-arm-left"></div>
+            <div class="rb-hand-left"></div>
+            <div class="rb-arm-right"></div>
+            <div class="rb-hand-right"></div>
+            <div class="rb-body"></div>
+            <div class="rb-text">&lt;/&gt;</div>
+            <div class="rb-head"></div>
+            <div class="rb-ear-right"></div>
+            <div class="rb-ear-left"></div>
+            <div class="rb-eye-left"></div>
+            <div class="rb-eye-shine-left"></div>
+            <div class="rb-eye-right"></div>
+            <div class="rb-eye-shine-right"></div>
+            <div class="rb-hat">
+              <div class="rb-helmet-dome"></div>
+              <div class="rb-helmet-ridge"></div>
+              <div class="rb-helmet-brim"></div>
+            </div>
+            <!-- Smile — SVG arc -->
+            <svg class="rb-smile" viewBox="0 0 22 9" xmlns="http://www.w3.org/2000/svg">
+              <path d="M 2 2 Q 11 9 20 2" fill="none" stroke="#000000" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
           </div>
         </div>
 
@@ -503,19 +540,16 @@ import { FindingsListComponent } from '../../components/findings-list/findings-l
       padding: 80px 24px 40px;
     }
     .loading-card {
-      background: rgba(8, 14, 24, 0.55);
-      border: 1px solid rgba(155, 212, 244, 0.14);
-      border-radius: 24px;
+      background: transparent;
+      border: none;
+      border-radius: 0;
       padding: 48px 40px 44px;
       text-align: center;
       width: 100%;
       max-width: 400px;
-      box-shadow:
-        0 0 60px rgba(60, 113, 151, 0.18),
-        0 0 120px rgba(88, 230, 242, 0.06),
-        inset 0 1px 0 rgba(255,255,255,0.06);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
     }
     .ring-wrap {
       position: relative;
@@ -660,146 +694,469 @@ import { FindingsListComponent } from '../../components/findings-list/findings-l
     ══════════════════════════════════════════════════════════════ */
     .results-page {
       flex: 1;
-      max-width: 900px;
+      max-width: 1100px;
       margin: 0 auto;
-      padding: 72px 24px 40px;
+      padding: 80px 40px 60px;
       width: 100%;
       box-sizing: border-box;
       position: relative;
       z-index: 10;
     }
 
+    /* ── Topbar: New Audit button ── */
     .results-topbar {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
       margin-bottom: 24px;
       flex-wrap: wrap;
     }
     .btn-back {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(117, 166, 197, 0.25);
-      color: #9bd4f4;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #ffffff;
       font-size: 13px;
       font-family: inherit;
-      padding: 7px 16px;
-      border-radius: 8px;
+      font-weight: 700;
+      padding: 8px 20px;
+      border-radius: 6px;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: background 0.18s, border-color 0.18s;
       white-space: nowrap;
+      letter-spacing: 0.01em;
     }
-    .btn-back:hover { background: rgba(155, 212, 244, 0.1); }
+    .btn-back:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.35);
+    }
     .error-banner.inline { flex: 1; max-width: unset; }
 
-    .results-summary {
+    /* ══════════════════════════════════════════════════════════════
+       SUMMARY CARD  — gauge left | info centre | robot bottom-right
+    ══════════════════════════════════════════════════════════════ */
+    .summary-card {
       display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 24px;
-      background: rgba(10, 16, 26, 0.65);
-      border: 1px solid rgba(117, 166, 197, 0.15);
-      border-radius: 16px;
-      padding: 24px;
-      margin-bottom: 24px;
-      align-items: start;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      grid-template-columns: 190px 1fr 176px;
+      grid-template-rows: auto;
+      gap: 0 40px;
+      background: linear-gradient(
+        135deg,
+        rgba(14, 36, 57, 0.97) 0%,
+        rgba(10, 26, 44, 0.98) 55%,
+        rgba(7, 18, 32, 1) 100%
+      );
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 18px;
+      padding: 28px 48px;
+      margin-bottom: 32px;
+      align-items: center;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 8px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(155,212,244,0.06) inset;
     }
-    @media (max-width: 640px) {
-      .results-summary { grid-template-columns: 1fr; }
+    /* The robot is positioned absolutely inside the card — bottom right */
+    .summary-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 70% at 20% 50%, rgba(22, 60, 90, 0.45) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    @media (max-width: 800px) {
+      .summary-card { grid-template-columns: 160px 1fr; }
+      .robot-mascot { display: none; }
+    }
+    @media (max-width: 520px) {
+      .summary-card { grid-template-columns: 1fr; padding: 24px 20px; }
+    }
+    @media (min-width: 801px) {
+      .robot-mascot { position: static; align-self: end; justify-self: center; }
     }
 
-    .score-panel {
+    /* Gauge column */
+    .summary-gauge {
       display: flex;
       flex-direction: column;
       align-items: center;
+      gap: 0;
+      grid-row: 1;
+      grid-column: 1;
     }
-    .score-updated { margin-top: 6px; }
+    .score-updated { margin-top: 4px; }
     .score-delta {
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 600;
-      color: rgba(215, 238, 255, 0.7);
-      padding: 3px 10px;
-      background: rgba(255, 255, 255, 0.06);
-      border-radius: 12px;
+      color: rgba(215, 238, 255, 0.55);
+      padding: 2px 9px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
     }
-    .score-delta.positive { color: #3fb950; }
+    .score-delta.positive { color: #45c75d; }
 
-    .summary-panel { padding-top: 4px; }
-    .summary-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #e6edf3;
-      margin: 0 0 10px;
+    /* Info column */
+    .summary-info {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      grid-row: 1;
+      grid-column: 2;
+      padding-right: 0;
     }
-    .summary-repo {
-      margin: 0 0 16px;
-      font-size: 13px;
+    .summary-top {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .summary-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #f3f8fb;
+      margin: 0;
+      letter-spacing: -0.02em;
+      font-style: italic;
+    }
+    .summary-repo-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .summary-label {
+      color: #7d98a8;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 700;
+    }
+    .repo-link {
+      color: #c0d8e8;
+      text-decoration: none;
+      word-break: break-all;
+      font-size: 12px;
+      font-style: italic;
+    }
+    .repo-link:hover { text-decoration: underline; color: #9bd4f4; }
+
+    /* Stats grid — 2×2 layout matching reference */
+    .summary-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 150px));
+      grid-template-rows: repeat(2, auto);
+      gap: 8px;
+    }
+    .stat-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 10px;
+      padding: 10px 14px 8px;
       display: flex;
       flex-direction: column;
       gap: 3px;
     }
-    .summary-label {
-      color: rgba(215, 238, 255, 0.4);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      font-weight: 600;
-    }
-    .repo-link {
-      color: #9bd4f4;
-      text-decoration: none;
-      word-break: break-all;
-    }
-    .repo-link:hover { text-decoration: underline; }
-
-    .summary-stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: 10px;
-    }
-    .stat-card {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(117, 166, 197, 0.12);
-      border-radius: 10px;
-      padding: 10px 12px;
-      text-align: center;
-    }
     .stat-value {
-      font-size: 24px;
-      font-weight: 700;
-      color: #e6edf3;
+      font-size: 30px;
+      font-weight: 800;
+      color: #ffffff;
       line-height: 1;
-      margin-bottom: 4px;
+      letter-spacing: -0.03em;
     }
-    .stat-card--score    .stat-value { color: #9bd4f4; }
+    .stat-card--score    .stat-value { color: #58c4e8; }
     .stat-card--critical .stat-value { color: #f87171; }
-    .stat-card--fixed    .stat-value { color: #3fb950; }
+    .stat-card--fixed    .stat-value { color: #45c75d; }
     .stat-label {
-      font-size: 11px;
-      color: rgba(215, 238, 255, 0.4);
+      font-size: 9px;
+      color: #7d98a8;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.10em;
+      font-weight: 700;
     }
 
-    .tests-badge { margin-top: 14px; }
+    .tests-badge { margin-top: 4px; }
     .badge-pass {
-      background: rgba(63, 185, 80, 0.1);
-      color: #3fb950;
-      border: 1px solid rgba(63, 185, 80, 0.3);
-      padding: 5px 12px;
-      border-radius: 6px;
-      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(63, 185, 80, 0.08);
+      color: #45c75d;
+      border: 1px solid rgba(69, 199, 93, 0.25);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
       font-weight: 600;
     }
     .badge-manual {
-      background: rgba(210, 153, 34, 0.1);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(210, 153, 34, 0.08);
       color: #d29922;
-      border: 1px solid rgba(210, 153, 34, 0.3);
-      padding: 5px 12px;
-      border-radius: 6px;
-      font-size: 13px;
+      border: 1px solid rgba(210, 153, 34, 0.25);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
       font-weight: 600;
     }
+
+    /* ══════════════════════════════════════════════════════════════
+       ROBOT MASCOT — faithful 2× port of the reference design
+       Original canvas: 83×104 px  →  scaled canvas: 166×208 px
+       All values = original × 2, borders ×1.5 (clamped to 3px)
+    ══════════════════════════════════════════════════════════════ */
+    .robot-mascot {
+      position: absolute;
+      bottom: 0;
+      right: 16px;
+      width: 166px;
+      height: 208px;
+      flex-shrink: 0;
+      grid-row: 1;
+      grid-column: 3;
+    }
+
+    /* ── Feet ── */
+    .rb-feet {
+      position: absolute;
+      top: 174px;  /* 87×2 */
+      left: 26px;  /* 13×2 */
+      width: 114px;
+      height: 20px;
+      display: flex;
+      gap: 8px;
+    }
+    .rb-foot-left {
+      margin-left: 14px;
+      width: 39px;   /* 19.6×2 */
+      height: 20px;  /* 9.8×2 */
+      background-color: #2563eb;
+      border-radius: 30px 30px 6px 6px;
+      border: 3px solid #000000;
+    }
+    .rb-foot-right {
+      width: 39px;
+      height: 20px;
+      background-color: #2563eb;
+      border-radius: 30px 30px 6px 6px;
+      border: 3px solid #000000;
+    }
+
+    /* ── Arms ── */
+    .rb-arm-left {
+      position: absolute;
+      top: 124px;  /* 62×2 */
+      left: 38px;  /* 19×2 */
+      width: 16px;
+      height: 36px;
+      background-color: #e2e8f0;
+      border-radius: 8px;
+      border: 3px solid #000000;
+    }
+    .rb-arm-right {
+      position: absolute;
+      top: 122px;  /* 61×2 */
+      left: 112px; /* 56×2 */
+      width: 16px;
+      height: 36px;
+      background-color: #e2e8f0;
+      border-radius: 8px;
+      border: 3px solid #000000;
+    }
+
+    /* ── Hands ── */
+    .rb-hand-left {
+      position: absolute;
+      top: 154px;  /* 77×2 */
+      left: 32px;  /* 16×2 */
+      transform: rotate(-8.32deg);
+      width: 30px;
+      height: 18px;
+      background-color: #ffffff;
+      border-radius: 12px 12px 6px 6px;
+      border: 3px solid #000000;
+    }
+    .rb-hand-right {
+      position: absolute;
+      top: 152px;  /* 76×2 */
+      left: 104px; /* 52×2 */
+      transform: rotate(7.49deg);
+      width: 30px;
+      height: 18px;
+      background-color: #ffffff;
+      border-radius: 12px 12px 6px 6px;
+      border: 3px solid #000000;
+    }
+
+    /* ── Body ── */
+    .rb-body {
+      position: absolute;
+      top: 124px;  /* 62×2 */
+      left: 58px;  /* 29×2 */
+      width: 48px;
+      height: 48px;
+      background-color: #ffffff;
+      border-radius: 6px 6px 29px 29px;
+      border: 3px solid #000000;
+    }
+    .rb-text {
+      position: absolute;
+      top: 132px;  /* 66×2 */
+      left: 64px;  /* 32×2 */
+      width: 40px;
+      font-family: "Inter", monospace;
+      font-weight: 900;
+      color: #3b82f6;
+      font-size: 19px;  /* 9.8×2 */
+      text-align: center;
+      letter-spacing: 0;
+      line-height: normal;
+      white-space: nowrap;
+    }
+
+    /* ── Head ── */
+    .rb-head {
+      position: absolute;
+      top: 56px;   /* 28×2 */
+      left: 34px;  /* 17×2 */
+      width: 98px; /* 49×2 */
+      height: 66px;/* 33×2 */
+      background-color: #ffffff;
+      border-radius: 20px;
+      border: 3px solid #000000;
+    }
+
+    /* ── Ears ── */
+    .rb-ear-right {
+      position: absolute;
+      top: 76px;   /* 38×2 */
+      left: 130px; /* 65×2 */
+      width: 10px;
+      height: 26px;
+      background-color: #e2e8f0;
+      border-radius: 5px;
+      border: 3px solid #000000;
+    }
+    .rb-ear-left {
+      position: absolute;
+      top: 76px;   /* 38×2 */
+      left: 26px;  /* 13×2 */
+      width: 10px;
+      height: 26px;
+      background-color: #e2e8f0;
+      border-radius: 5px;
+      border: 3px solid #000000;
+    }
+
+    /* ── Eyes ── */
+    .rb-eye-left {
+      position: absolute;
+      top: 74px;   /* 37×2 */
+      left: 50px;  /* 25×2 */
+      width: 20px;
+      height: 20px;
+      background-color: #000000;
+      border-radius: 10px;
+    }
+    .rb-eye-shine-left {
+      position: absolute;
+      top: 76px;   /* 38×2 */
+      left: 54px;  /* 27×2 */
+      width: 6px;
+      height: 6px;
+      background-color: #ffffff;
+      border-radius: 3px;
+    }
+    .rb-eye-right {
+      position: absolute;
+      top: 74px;   /* 37×2 */
+      left: 96px;  /* 48×2 */
+      width: 20px;
+      height: 20px;
+      background-color: #000000;
+      border-radius: 10px;
+    }
+    .rb-eye-shine-right {
+      position: absolute;
+      top: 76px;   /* 38×2 */
+      left: 100px; /* 50×2 */
+      width: 6px;
+      height: 6px;
+      background-color: #ffffff;
+      border-radius: 3px;
+    }
+
+    /* ── Hard hat container ── */
+    .rb-hat {
+      position: absolute;
+      top: 14px;   /* 7×2 */
+      left: 18px;  /* 9×2 */
+      width: 128px;/* 64×2 */
+      height: 58px;/* 29×2 */
+    }
+    .rb-helmet-dome {
+      position: absolute;
+      top: -6px;   /* -3×2 */
+      left: 12px;  /* 6×2 */
+      width: 106px;/* 53×2 */
+      height: 60px;/* 30×2 */
+      border-radius: 60px 60px 10px 10px;
+      border: 3px solid #000000;
+      background: linear-gradient(90deg, rgba(59,130,246,1) 0%, rgba(139,92,246,1) 100%);
+    }
+    .rb-helmet-ridge {
+      position: absolute;
+      top: -14px;  /* -7×2 */
+      left: 52px;  /* 26×2 */
+      width: 26px; /* 13×2 */
+      height: 34px;/* 17×2 */
+      border-top: 2px solid #000000;
+      border-right: 2px solid #000000;
+      border-left: 2px solid #000000;
+      background: linear-gradient(90deg, rgba(37,99,235,1) 0%, rgba(124,58,237,1) 100%);
+    }
+    .rb-helmet-brim {
+      position: absolute;
+      top: 40px;   /* 20×2 */
+      left: 6px;   /* 3×2 */
+      width: 116px;/* 58×2 */
+      height: 16px;/* 8×2 */
+      background-color: #3b82f6;
+      border-radius: 5px;
+      border: 3px solid #000000;
+    }
+
+    /* ── Smile SVG ── */
+    .rb-smile {
+      position: absolute;
+      top: 98px;
+      left: 66px;
+      width: 34px;
+      height: 12px;
+      overflow: visible;
+    }
+
+    /* ── Robot animations ── */
+    @keyframes rb-float {
+      0%, 100% { transform: translateY(0px);   }
+      50%       { transform: translateY(-10px); }
+    }
+    @keyframes rb-blink {
+      0%, 88%, 100% { transform: scaleY(1);   }
+      93%            { transform: scaleY(0.1); }
+    }
+
+    .robot-mascot {
+      animation: rb-float 2.8s ease-in-out infinite;
+      transform-origin: bottom center;
+    }
+    .rb-eye-left, .rb-eye-right {
+      transform-origin: center;
+      animation: rb-blink 4s ease-in-out infinite;
+    }
+    .rb-eye-right { animation-delay: 0.06s; }
 
   `]
 })
@@ -895,17 +1252,19 @@ export class HomeComponent {
 
     this.auditService.runAudit({ repoUrl: this.repoUrl }).subscribe({
       next: (res) => {
-        this.stopStepAnimation();
-        this.result.set(res);
-        this.findings.set(res.findings ?? []);
-        this.loading.set(false);
+        this.stopStepAnimation(() => {
+          this.result.set(res);
+          this.findings.set(res.findings ?? []);
+          this.loading.set(false);
+        });
       },
       error: (err) => {
-        this.stopStepAnimation();
-        this.loading.set(false);
-        this.error.set(
-          err?.error?.message ?? err?.message ?? 'Audit failed. Please check the URL and try again.'
-        );
+        this.stopStepAnimation(() => {
+          this.loading.set(false);
+          this.error.set(
+            err?.error?.message ?? err?.message ?? 'Audit failed. Please check the URL and try again.'
+          );
+        });
       }
     });
   }
@@ -972,13 +1331,29 @@ export class HomeComponent {
     return this.findings().filter(f => f.severity === s).length;
   }
 
-  private stopStepAnimation(): void {
+  private stopStepAnimation(onComplete?: () => void): void {
     if (this.stepInterval) {
       clearInterval(this.stepInterval);
       this.stepInterval = null;
     }
-    // Complete the ring and mark all items done
-    this.loadingProgress.set(100);
-    this.checkItems = this.checkItems.map(item => ({ ...item, status: 'done' }));
+    // Animate remaining progress to 100%, then call onComplete after a short pause
+    const current = this.loadingProgress();
+    if (current >= 100) {
+      this.checkItems = this.checkItems.map(item => ({ ...item, status: 'done' }));
+      onComplete?.();
+      return;
+    }
+    const remaining = 100 - current;
+    const steps = remaining;
+    let step = 0;
+    const fillInterval = setInterval(() => {
+      step++;
+      this.loadingProgress.set(current + step);
+      if (step >= steps) {
+        clearInterval(fillInterval);
+        this.checkItems = this.checkItems.map(item => ({ ...item, status: 'done' }));
+        setTimeout(() => onComplete?.(), 400);
+      }
+    }, 12);
   }
 }

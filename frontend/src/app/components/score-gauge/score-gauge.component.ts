@@ -6,92 +6,116 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="gauge-container">
-      <svg class="gauge-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <!-- Background circle -->
-        <circle
-          cx="100" cy="100" r="80"
+    <div class="gauge-wrap">
+      <svg class="gauge-svg" viewBox="0 0 180 130" xmlns="http://www.w3.org/2000/svg">
+        <!-- Track arc: 240° span from 150° to 30° (via 390°) -->
+        <path
+          [attr.d]="trackPath"
           fill="none"
-          stroke="rgba(255,255,255,0.07)"
-          stroke-width="16"
-          [attr.stroke-dasharray]="circumference"
-          stroke-dashoffset="0"
+          stroke="rgba(255,255,255,0.12)"
+          stroke-width="12"
+          stroke-linecap="round"
         />
-        <!-- Score arc -->
-        <circle
-          cx="100" cy="100" r="80"
+        <!-- Progress arc -->
+        <path
+          [attr.d]="trackPath"
           fill="none"
           [attr.stroke]="scoreColor"
-          stroke-width="16"
+          stroke-width="12"
           stroke-linecap="round"
-          [attr.stroke-dasharray]="circumference"
+          [attr.stroke-dasharray]="trackLength"
           [attr.stroke-dashoffset]="dashOffset"
-          transform="rotate(-90 100 100)"
-          class="score-arc"
+          class="gauge-arc"
         />
-        <!-- Score text -->
-        <text x="100" y="95" text-anchor="middle" class="score-number" [attr.fill]="scoreColor">
-          {{ score }}
-        </text>
-        <text x="100" y="120" text-anchor="middle" class="score-label">/100</text>
-        <text x="100" y="142" text-anchor="middle" class="score-grade" [attr.fill]="scoreColor">
-          {{ grade }}
-        </text>
+        <!-- Score number -->
+        <text x="90" y="95" text-anchor="middle" class="gauge-score" fill="white">{{ score }}</text>
       </svg>
+      <div class="gauge-sub">/100</div>
+      <div class="gauge-rating" [style.color]="scoreColor">{{ grade }}</div>
     </div>
   `,
   styles: [`
-    .gauge-container {
+    .gauge-wrap {
+      position: relative;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
+      width: 170px;
     }
     .gauge-svg {
-      width: 200px;
-      height: 200px;
+      width: 170px;
+      height: 125px;
+      overflow: visible;
     }
-    .score-arc {
-      transition: stroke-dashoffset 1s ease-in-out;
+    .gauge-arc {
+      transition: stroke-dashoffset 1.1s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .score-number {
-      font-size: 42px;
+    .gauge-score {
+      font-size: 44px;
+      font-weight: 800;
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      letter-spacing: -0.03em;
+    }
+    .gauge-sub {
+      font-size: 13px;
+      color: rgba(125, 152, 168, 0.85);
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      font-weight: 500;
+      margin-top: -10px;
+      line-height: 1;
+    }
+    .gauge-rating {
+      font-size: 15px;
       font-weight: 700;
       font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
-    }
-    .score-label {
-      font-size: 16px;
-      fill: rgba(139, 148, 158, 0.7);
-      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
-    }
-    .score-grade {
-      font-size: 18px;
-      font-weight: 600;
-      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      letter-spacing: 0.10em;
+      margin-top: 6px;
+      text-transform: uppercase;
     }
   `]
 })
 export class ScoreGaugeComponent implements OnChanges {
   @Input() score = 0;
 
-  readonly circumference = 2 * Math.PI * 80; // ≈ 502.65
-  dashOffset = this.circumference;
+  // Arc centred at (90, 90), radius 68, from 150° to 390° (=30°) — 240° span
+  private readonly cx = 90;
+  private readonly cy = 90;
+  private readonly r = 68;
+  private readonly startDeg = 150;
+  private readonly endDeg = 390; // equivalent to 30°
+  private readonly spanDeg = 240;
 
-  get scoreColor(): string {
-    if (this.score >= 80) return '#3fb950';
-    if (this.score >= 60) return '#d29922';
-    if (this.score >= 40) return '#f97316';
-    return '#f87171';
+  trackPath = this._buildArcPath(this.startDeg, this.endDeg);
+  trackLength = (Math.PI * this.r * this.spanDeg) / 180;
+  dashOffset = this.trackLength;
+
+  private _toRad(d: number) { return (d * Math.PI) / 180; }
+  private _pt(deg: number) {
+    return {
+      x: this.cx + this.r * Math.cos(this._toRad(deg)),
+      y: this.cy + this.r * Math.sin(this._toRad(deg))
+    };
+  }
+  private _buildArcPath(startDeg: number, endDeg: number): string {
+    const s = this._pt(startDeg);
+    const e = this._pt(endDeg);
+    // 240° span > 180°, so largeArc = 1
+    return `M ${s.x.toFixed(3)} ${s.y.toFixed(3)} A ${this.r} ${this.r} 0 1 1 ${e.x.toFixed(3)} ${e.y.toFixed(3)}`;
   }
 
+  get scoreColor(): string {
+    if (this.score >= 60) return '#22c55e';  // green
+    if (this.score >= 40) return '#f97316';  // orange
+    return '#ef4444';                         // red
+  }
   get grade(): string {
-    if (this.score >= 80) return 'GOOD';
-    if (this.score >= 60) return 'FAIR';
-    if (this.score >= 40) return 'POOR';
+    if (this.score >= 60) return 'GOOD';
+    if (this.score >= 40) return 'MEDIUM';
     return 'CRITICAL';
   }
 
   ngOnChanges(): void {
-    const progress = this.score / 100;
-    this.dashOffset = this.circumference * (1 - progress);
+    const progress = Math.min(1, Math.max(0, this.score / 100));
+    this.dashOffset = this.trackLength * (1 - progress);
   }
 }
